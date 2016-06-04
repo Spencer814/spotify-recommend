@@ -21,6 +21,8 @@ var app = express();
 app.use(express.static('public'));
 
 app.get('/search/:name', function(req, res) {
+    var artist;
+    
     var searchReq = getFromApi('search', {
         q: req.params.name,
         limit: 1,
@@ -28,12 +30,16 @@ app.get('/search/:name', function(req, res) {
     });
 
     searchReq.on('end', function(item) {
-        var artist = item.artists.items[0];
-        res.json(artist);
+        artist = item.artists.items[0];
+        var relateSearch = getFromApi('artists/' + artist.id + '/related-artists');
+        relateSearch.on('end', function recommended(artistArray) {
+            artist.related = artistArray.artists;
+            res.json(artist);
+        });
     });
 
-    searchReq.on('error', function(code) {
-        res.sendStatus(code);
+    searchReq.on('error', function() {
+        res.sendStatus(404);
     });
 });
 
